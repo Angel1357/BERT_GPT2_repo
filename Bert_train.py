@@ -84,7 +84,7 @@ masked_lm = keras_nlp.models.BertMaskedLM.from_preset(
     "bert_base_multi",
 )
 
-masked_lm.load_weights("./weights_2/practica2_weights_k")
+masked_lm.load_weights("./weights_bert_10_epoch/bert_weights")
 
 
 #######################################################################
