@@ -40,7 +40,7 @@ import math
 import gc
 os.environ["KERAS_BACKEND"] = "tensorflow"
 
-import Bert_functions
+import GPT2_functions
 
 
 #######################################################################
@@ -68,29 +68,31 @@ df2 = pd.DataFrame(query.fetchall())
 
 ## limpiando los datos
 
-df1,df2,corpus=Bert_functions.preprocesador_2_corpus(df1,df2)
+df1,df2,corpus=GPT2_functions.preprocesador_2_corpus(df1,df2)
 
 
 #######################################################################
 
 ## Se carga el modelo base, y se le aplican los pesos de nuestro modelo previamente entrenado, cargar directamente el modelo no funciona
 
-masked_lm = keras_nlp.models.BertMaskedLM.from_preset(
-    "bert_base_multi",
+preprocessor = keras_nlp.models.GPT2CausalLMPreprocessor.from_preset(
+    "gpt2_base_en",
+    sequence_length=640,
+)
+gpt2_lm = keras_nlp.models.GPT2CausalLM.from_preset(
+    "gpt2_base_en", preprocessor=preprocessor
 )
 
-masked_lm.load_weights("./weights_bert_10_epoch/bert_weights")
-
-predict_lm=masked_lm.backbone # bert.backbone es lo que realiza la prediccion de embeddings
-preprocessor_get_word_embedding = keras_nlp.models.BertPreprocessor.from_preset("bert_base_multi") # preprocesador necesario para usar bert.backbone
-
+gpt2_lm.load_weights("./weights_gpt2_20_epoch/gpt2_weights")
 
 #######################################################################
 
-Bert_functions.predict_lm=predict_lm
-Bert_functions.preprocessor_get_word_embedding = preprocessor_get_word_embedding
-Bert_functions.df1 = df1
-Bert_functions.df2 = df2
+predict_lm=gpt2_lm.backbone 
+
+GPT2_functions.predict_lm=predict_lm
+GPT2_functions.preprocessor_get_word_embedding = preprocessor
+GPT2_functions.df1 = df1
+GPT2_functions.df2 = df2
 
 
 #######################################################################
@@ -100,6 +102,13 @@ Bert_functions.df2 = df2
 batch_size_num=8 # se define el batch_size
 predict_batch_num=1000 # se define cuantas predicciones se van a hacer antes de guardar los resultados, limpiar memoria ram y empezar con el siguiente lote
 
+# Linearly decaying learning rate.
+loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+gpt2_lm.compile(
+    optimizer=tf.keras.optimizers.Adam(),
+    loss=loss,
+    weighted_metrics=["accuracy"],
+)
 
 #######################################################################
 
@@ -110,7 +119,7 @@ print(" ")
 print("---------------------------------------------")
 print("Evaluate")
 print(" ")
-masked_lm.evaluate(corpus.sample(100),batch_size=batch_size_num)
+gpt2_lm.evaluate(corpus.sample(1000),batch_size=batch_size_num)
 print(" ")
 
 
@@ -121,13 +130,13 @@ print(" ")
 print("---------------------------------------------")
 print("df1 prediction")
 print(" ")
-df1_centroid,df1_matched=Bert_functions.centroid_df(df1,columns=["concepto","cuerpo_pre"],predict_batch=predict_batch_num,batch_size=batch_size_num)
+df1_centroid,df1_matched=GPT2_functions.centroid_df(df1,columns=["concepto","cuerpo_pre"],predict_batch=predict_batch_num,batch_size=batch_size_num)
 
 
 ## Funciones para guardar y cargar los datos de ser necesario
 ## Cambiar nombre de ser necesario para no sobre escribir un archivo antiguo
 
-# df1_matched.to_pickle("df1_matched.pkl")
+df1_matched.to_pickle("df1_matched_gpt2.pkl")
 # df1_matched = pd.read_pickle("df1_matched.pkl")
 print(" ")
 
@@ -138,7 +147,7 @@ print(" ")
 print("---------------------------------------------")
 print("df2 prediction")
 print(" ")
-df2_centroid,df2_matched_centroid=Bert_functions.centroid_df(df2,columns=["universidad","carrera","cuerpo_pre"],predict_batch=predict_batch_num,batch_size=batch_size_num)
+df2_centroid,df2_matched_centroid=GPT2_functions.centroid_df(df2,columns=["universidad","carrera","cuerpo_pre"],predict_batch=predict_batch_num,batch_size=batch_size_num)
 
 ## Funciones para guardar y cargar los datos de ser necesario
 ## Cambiar nombre de ser necesario para no sobre escribir un archivo antiguo
@@ -155,8 +164,8 @@ print(" ")
 valor_corte_similitud=0.70
 
 print("---------------------------------------------")
-df_ofertas_similitud,df_ofertas_similitud_muestreado,df_porcentajes=Bert_functions.get_all_distances(valor_corte_similitud,df2_matched_centroid,df1_matched,0,min_max=0,cut_porcentaje_por_carrera=False)
-per_list=Bert_functions.valores_corte_porc(df_ofertas_similitud,60,100)
+df_ofertas_similitud,df_ofertas_similitud_muestreado,df_porcentajes=GPT2_functions.get_all_distances(valor_corte_similitud,df2_matched_centroid,df1_matched,0,min_max=0,cut_porcentaje_por_carrera=False)
+per_list=GPT2_functions.valores_corte_porc(df_ofertas_similitud,-100,100)
 
 
 ## Funciones para guardar y cargar los datos de ser necesario
@@ -166,7 +175,7 @@ per_list=Bert_functions.valores_corte_porc(df_ofertas_similitud,60,100)
 ## df_ofertas_similitud[df_ofertas_similitud.distancia>=0.7], siendo este un datagrame que toma solo los datos
 ## con similitud coseno mayor a 0.7
 
-df_ofertas_similitud.to_pickle("df_ofertas_similitud_bert.pkl")
+df_ofertas_similitud.to_pickle("df_ofertas_similitud_gpt2.pkl")
 # df_ofertas_similitud = pd.read_pickle("df_ofertas_similitud.pkl")
 
 

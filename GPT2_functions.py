@@ -95,7 +95,7 @@ def preprocesador_2_corpus(df1,df2):
 def get_word_embedding(text,predict_batch,batch_size_n):
 
     """
-    Funcion que obtiene los embeddings de un corpus a travez de el metodo predict() de bert.backbone
+    Funcion que obtiene los embeddings de un corpus a travez de el metodo predict() de gpt2_lm.backbone
 
     Inputs:
 
@@ -112,10 +112,10 @@ def get_word_embedding(text,predict_batch,batch_size_n):
                                     para cada texto en text
 
     """
-    output_list=[[],[]]
+    output_list=[]
     
 
-    input_ids = preprocessor_get_word_embedding([text])
+    input_ids = preprocessor_get_word_embedding.generate_preprocess([text])
 
 
 
@@ -129,8 +129,8 @@ def get_word_embedding(text,predict_batch,batch_size_n):
         tf.keras.backend.clear_session()
         gc.collect()
 
-        output_list[0].extend(outputs['sequence_output'])
-        output_list[1].extend(outputs['pooled_output'])
+        output_list.extend(outputs)
+
         
 
         
@@ -154,17 +154,11 @@ def get_centroid_emb(corpus,predict_batch,batch_size_n):
     Outputs:
 
     centroid_emb_list: np.mean() con axis 0, pasa outputs['sequence_output'] a vectores de largo 768
-    centroid_emb_list_1: np.mean() con axis 1, pasa outputs['sequence_output'] a vectores de largo 512
-    cls_tokens: outputs['pooled_output']
-
-    outputs['pooled_output']: is the mean pooling of all hidden states, contiene 768 valores que representan los 512 tokens de la oracion,
-                                para cada texto en corpus
 
     """
     
     centroid_emb_list=[]
-    centroid_emb_list_1=[]
-    cls_tokens=[]
+
     for i in range(math.ceil(len(corpus)/predict_batch)):
 
         print("---------------------------------------------")
@@ -173,18 +167,13 @@ def get_centroid_emb(corpus,predict_batch,batch_size_n):
         gc.collect()
         corpus_vec=get_word_embedding(corpus[i*predict_batch:(i+1)*predict_batch],predict_batch,batch_size_n)
         
-        for vector in corpus_vec[0]:
+        for vector in corpus_vec:
             # axis 0 pasa a vectores de largo 768
             centroid_emb=np.mean(vector,axis=0)
             centroid_emb_list.append(centroid_emb) 
- 
-            # axis 1 pasa a vectores de largo 512, 1 valor por cada palabra
-            centroid_emb_1=np.mean(vector,axis=1) 
-            centroid_emb_list_1.append(centroid_emb_1)
 
-        cls_tokens.extend(corpus_vec[1])
 
-    return centroid_emb_list,centroid_emb_list_1, cls_tokens
+    return centroid_emb_list
 
 def centroid_df(df,columns,predict_batch,batch_size):
     """
@@ -207,9 +196,8 @@ def centroid_df(df,columns,predict_batch,batch_size):
     """
     df_to_centroid=df[columns].copy()
     df_centroid=get_centroid_emb(df_to_centroid.cuerpo_pre,predict_batch,batch_size)
-    df_to_centroid['0']=df_centroid[0] #768
-    df_to_centroid['1']=df_centroid[1] #512
-    df_to_centroid['2']=df_centroid[2] #cls
+    df_to_centroid['0']=df_centroid #768
+
 
 
 
@@ -228,24 +216,24 @@ def matched_df(df_to_centroid):
     
     Outputs:
     
-    df_matched: Dataframe que contiene solo los datos que tienen palabra clave existentes simultanemante en df1 y df2 
+    df_matched: Dataframe que contiene solo los datos que tienen palabra clave existentes simultanemante en df_to_centroid y df2 
     
     """
+
 
     if np.isin("carrera",df_to_centroid.columns):
         # Obtengo la lista de conceptos/carreras que estan en ambos dataframes
         concepto_carrera_bolean=np.isin(df1.concepto.unique(), df2.carrera.unique())
         only_matched_concepts=[ df1.concepto.unique()[i]  for i in range(len(df1.concepto.unique())) if concepto_carrera_bolean[i]==True]
 
-        df_matched=df_to_centroid[df_to_centroid.carrera.isin(only_matched_concepts)].copy()
 
+        df_matched=df_to_centroid[df_to_centroid.carrera.isin(only_matched_concepts)].copy()
     elif np.isin("concepto",df_to_centroid.columns):
         # Obtengo la lista de conceptos/carreras que estan en ambos dataframes
         concepto_carrera_bolean=np.isin(df_to_centroid.concepto.unique(), df2.carrera.unique())
         only_matched_concepts=[ df_to_centroid.concepto.unique()[i]  for i in range(len(df_to_centroid.concepto.unique())) if concepto_carrera_bolean[i]==True]
 
         df_matched=df_to_centroid[df_to_centroid.concepto.isin(only_matched_concepts)].copy()
-
     else:
         print("No se pudo encontrar la columna con palabra clave, carrera o concepto, por lo que se devuelve todo el dataframe y no solo las coincidencias")
         df_matched=df_to_centroid.copy()

@@ -40,7 +40,7 @@ import math
 import gc
 os.environ["KERAS_BACKEND"] = "tensorflow"
 
-import Bert_functions
+import GPT2_functions
 
 #######################################################################
 
@@ -67,7 +67,7 @@ df2 = pd.DataFrame(query.fetchall())
 
 ## limpiando los datos
 
-df1,df2,corpus=Bert_functions.preprocesador_2_corpus(df1,df2)
+df1,df2,corpus=GPT2_functions.preprocesador_2_corpus(df1,df2)
 
 
 #######################################################################
@@ -75,25 +75,56 @@ df1,df2,corpus=Bert_functions.preprocesador_2_corpus(df1,df2)
 from sklearn.model_selection import train_test_split
 corpus_x, corpus_test = train_test_split(corpus, test_size=0.15, shuffle=True, random_state=13679)
 
+dataset_corpus_x =tf.data.Dataset.from_tensor_slices(corpus_x.to_list())
+dataset_corpus_test=tf.data.Dataset.from_tensor_slices(corpus_test.to_list())
 
 #######################################################################
 
 ## Se carga el modelo base, y se le aplican los pesos de nuestro modelo previamente entrenado, cargar directamente el modelo no funciona
 
-masked_lm = keras_nlp.models.BertMaskedLM.from_preset(
-    "bert_base_multi",
+preprocessor = keras_nlp.models.GPT2CausalLMPreprocessor.from_preset(
+    "gpt2_base_en",
+    sequence_length=640,
+)
+gpt2_lm = keras_nlp.models.GPT2CausalLM.from_preset(
+    "gpt2_base_en", preprocessor=preprocessor
 )
 
-masked_lm.load_weights("./weights_bert_10_epoch/bert_weights")
-
+gpt2_lm.load_weights("./weights_gpt2_15_epoch/gpt2_weights")
 
 #######################################################################
 
 ## batch_size = 32 is the default, maximo 3 en gpu 3070 laptop y max 8 en el servidor con gpu A4000
 
 batch_size_num=8 # se define el batch_size
-num_epochs=2 # se define el numero de epocas
+num_epochs=5 # se define el numero de epocas
 
+train_ds = (
+    dataset_corpus_x.map(lambda document: document)
+    .batch(batch_size_num)
+    .cache()
+    .prefetch(tf.data.AUTOTUNE)
+)
+
+test_ds = (
+    dataset_corpus_test.map(lambda document: document)
+    .batch(batch_size_num)
+    .cache()
+    .prefetch(tf.data.AUTOTUNE)
+)
+
+# Linearly decaying learning rate.
+learning_rate = tf.keras.optimizers.schedules.PolynomialDecay(
+    5e-5,
+    decay_steps=train_ds.cardinality() * num_epochs,
+    end_learning_rate=0.0,
+)
+loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+gpt2_lm.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate),
+    loss=loss,
+    weighted_metrics=["accuracy"],
+)
 
 #######################################################################
 
@@ -104,7 +135,7 @@ print(" ")
 print("---------------------------------------------")
 print("Evaluate")
 print(" ")
-masked_lm.evaluate(corpus.sample(100),batch_size=batch_size_num)
+gpt2_lm.evaluate(train_ds.take(25))
 print(" ")
 
 #######################################################################
@@ -117,21 +148,24 @@ print(" ")
 print("---------------------------------------------")
 print("Entramiento del modelo")
 print(" ")
-checkpoint_path = "./training_weights/cp-{epoch:04d}/bert_weights" 
+
+
+
+checkpoint_path = "./training_weights_gpt2_after15/cp-{epoch:04d}/gpt2_weights" 
 checkpoint_dir = os.path.dirname(checkpoint_path)
 
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-   checkpoint_path, verbose=1, save_best_only=True, monitor="val_sparse_categorical_accuracy" ,save_weights_only=True,
+   checkpoint_path, verbose=1, save_best_only=True, monitor="val_accuracy" ,save_weights_only=True,
    # Save weights when there is a improvement in the test accuracy
    #save_freq='epoch'
    )
 
 
-history=masked_lm.fit(x=corpus_x,batch_size=batch_size_num,epochs=num_epochs,validation_data =corpus_test ,callbacks=[model_checkpoint_callback])
+history=gpt2_lm.fit(x=train_ds, epochs=num_epochs,validation_data =test_ds ,callbacks=[model_checkpoint_callback])
 
 print(" ")
 # Guarda la historia si se desea, se puede comentar si no
-#np.save('my_history.npy',history.history)
+np.save('my_history_gpt2_3.npy',history.history)
 #history_2=np.load('my_history.npy',allow_pickle='TRUE').item()
 #history_2
 
