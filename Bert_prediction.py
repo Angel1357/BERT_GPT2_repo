@@ -73,11 +73,23 @@ df1,df2,corpus=Bert_functions.preprocesador_2_corpus(df1,df2)
 
 #######################################################################
 
+## batch_size = 32 is the default, maximo 3 en gpu 3070 laptop y max 8 en el servidor con gpu A4000
+
+batch_size_num=8 # se define el batch_size
+predict_batch_num=1000 # se define cuantas predicciones se van a hacer antes de guardar los resultados, limpiar memoria ram y empezar con el siguiente lote
+
+
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+
 ## Se carga el modelo base, y se le aplican los pesos de nuestro modelo previamente entrenado, cargar directamente el modelo no funciona
 
 masked_lm = keras_nlp.models.BertMaskedLM.from_preset(
     "bert_base_multi",
 )
+
 
 masked_lm.load_weights("./weights_bert_10_epoch/bert_weights")
 
@@ -91,14 +103,6 @@ Bert_functions.predict_lm=predict_lm
 Bert_functions.preprocessor_get_word_embedding = preprocessor_get_word_embedding
 Bert_functions.df1 = df1
 Bert_functions.df2 = df2
-
-
-#######################################################################
-
-## batch_size = 32 is the default, maximo 3 en gpu 3070 laptop y max 8 en el servidor con gpu A4000
-
-batch_size_num=8 # se define el batch_size
-predict_batch_num=1000 # se define cuantas predicciones se van a hacer antes de guardar los resultados, limpiar memoria ram y empezar con el siguiente lote
 
 
 #######################################################################
@@ -157,6 +161,16 @@ valor_corte_similitud=0.70
 print("---------------------------------------------")
 df_ofertas_similitud,df_ofertas_similitud_muestreado,df_porcentajes=Bert_functions.get_all_distances(valor_corte_similitud,df2_matched_centroid,df1_matched,0,min_max=0,cut_porcentaje_por_carrera=False)
 per_list=Bert_functions.valores_corte_porc(df_ofertas_similitud,60,100)
+
+
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
 
 
 ## Funciones para guardar y cargar los datos de ser necesario

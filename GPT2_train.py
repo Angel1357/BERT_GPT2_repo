@@ -42,6 +42,7 @@ os.environ["KERAS_BACKEND"] = "tensorflow"
 
 import GPT2_functions
 
+
 #######################################################################
 
 ## importando los datos, hay 167113 al momento de crear este script
@@ -72,6 +73,16 @@ df1,df2,corpus=GPT2_functions.preprocesador_2_corpus(df1,df2)
 
 #######################################################################
 
+## batch_size = 32 is the default, maximo 3 en gpu 3070 laptop y max 8 en el servidor con gpu A4000
+
+batch_size_num=8 # se define el batch_size
+num_epochs=5 # se define el numero de epocas
+
+checkpoint_path = "./training_weights_gpt2_after20/cp-{epoch:04d}/gpt2_weights" 
+checkpoint_dir = os.path.dirname(checkpoint_path)
+
+#######################################################################
+
 from sklearn.model_selection import train_test_split
 corpus_x, corpus_test = train_test_split(corpus, test_size=0.15, shuffle=True, random_state=13679)
 
@@ -93,11 +104,6 @@ gpt2_lm = keras_nlp.models.GPT2CausalLM.from_preset(
 gpt2_lm.load_weights("./weights_gpt2_15_epoch/gpt2_weights")
 
 #######################################################################
-
-## batch_size = 32 is the default, maximo 3 en gpu 3070 laptop y max 8 en el servidor con gpu A4000
-
-batch_size_num=8 # se define el batch_size
-num_epochs=5 # se define el numero de epocas
 
 train_ds = (
     dataset_corpus_x.map(lambda document: document)
@@ -149,11 +155,6 @@ print("---------------------------------------------")
 print("Entramiento del modelo")
 print(" ")
 
-
-
-checkpoint_path = "./training_weights_gpt2_after15/cp-{epoch:04d}/gpt2_weights" 
-checkpoint_dir = os.path.dirname(checkpoint_path)
-
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
    checkpoint_path, verbose=1, save_best_only=True, monitor="val_accuracy" ,save_weights_only=True,
    # Save weights when there is a improvement in the test accuracy
@@ -165,7 +166,7 @@ history=gpt2_lm.fit(x=train_ds, epochs=num_epochs,validation_data =test_ds ,call
 
 print(" ")
 # Guarda la historia si se desea, se puede comentar si no
-np.save('my_history_gpt2_3.npy',history.history)
+#np.save('my_history_gpt2_3.npy',history.history)
 #history_2=np.load('my_history.npy',allow_pickle='TRUE').item()
 #history_2
 

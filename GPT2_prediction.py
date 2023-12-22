@@ -73,6 +73,14 @@ df1,df2,corpus=GPT2_functions.preprocesador_2_corpus(df1,df2)
 
 #######################################################################
 
+## batch_size = 32 is the default, maximo 3 en gpu 3070 laptop y max 8 en el servidor con gpu A4000
+
+batch_size_num=8 # se define el batch_size
+predict_batch_num=1000 # se define cuantas predicciones se van a hacer antes de guardar los resultados, limpiar memoria ram y empezar con el siguiente lote
+
+
+#######################################################################
+
 ## Se carga el modelo base, y se le aplican los pesos de nuestro modelo previamente entrenado, cargar directamente el modelo no funciona
 
 preprocessor = keras_nlp.models.GPT2CausalLMPreprocessor.from_preset(
@@ -84,10 +92,10 @@ gpt2_lm = keras_nlp.models.GPT2CausalLM.from_preset(
 )
 
 gpt2_lm.load_weights("./weights_gpt2_20_epoch/gpt2_weights")
+predict_lm=gpt2_lm.backbone 
+
 
 #######################################################################
-
-predict_lm=gpt2_lm.backbone 
 
 GPT2_functions.predict_lm=predict_lm
 GPT2_functions.preprocessor_get_word_embedding = preprocessor
@@ -96,11 +104,6 @@ GPT2_functions.df2 = df2
 
 
 #######################################################################
-
-## batch_size = 32 is the default, maximo 3 en gpu 3070 laptop y max 8 en el servidor con gpu A4000
-
-batch_size_num=8 # se define el batch_size
-predict_batch_num=1000 # se define cuantas predicciones se van a hacer antes de guardar los resultados, limpiar memoria ram y empezar con el siguiente lote
 
 # Linearly decaying learning rate.
 loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
@@ -136,7 +139,7 @@ df1_centroid,df1_matched=GPT2_functions.centroid_df(df1,columns=["concepto","cue
 ## Funciones para guardar y cargar los datos de ser necesario
 ## Cambiar nombre de ser necesario para no sobre escribir un archivo antiguo
 
-df1_matched.to_pickle("df1_matched_gpt2.pkl")
+# df1_matched.to_pickle("df1_matched_gpt2.pkl")
 # df1_matched = pd.read_pickle("df1_matched.pkl")
 print(" ")
 
@@ -167,6 +170,8 @@ print("---------------------------------------------")
 df_ofertas_similitud,df_ofertas_similitud_muestreado,df_porcentajes=GPT2_functions.get_all_distances(valor_corte_similitud,df2_matched_centroid,df1_matched,0,min_max=0,cut_porcentaje_por_carrera=False)
 per_list=GPT2_functions.valores_corte_porc(df_ofertas_similitud,-100,100)
 
+
+#######################################################################
 
 ## Funciones para guardar y cargar los datos de ser necesario
 ## Cambiar nombre de ser necesario para no sobre escribir un archivo antiguo
