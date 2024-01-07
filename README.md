@@ -62,3 +62,34 @@ La linea 78 contiene el parametro importante batch_size_num, que define el batch
 La linea 79 contiene el parametro importante predict_batch_num, que define cuantas predicciones se van a hacer antes de guardar los resultados, limpiar memoria ram y empezar con el siguiente lotem, experimentalmente un valor de 2000 ocupa un maximo de 16gb de ram y un valor de 1000 un maximo de 12gb de ram.
 
 Linea 183 corresponde a el guardado de el que contiene las ofertas de trabajo con su respectiva similitud coseno calculada, si es que se desea guardar el dataframe que solo contiene los valores que estan por sobre el valor señalado, cambiar `df_ofertas_similitud` por `df_ofertas_similitud_muestreado`.
+
+# Comparacion de modelos:
+
+Para la comparacion de los modelos GPT2 y BERT, se realizo una disminucion a 2 dimensiones de los embeddings obtenidos por ambos modelos, para su posterior graficacion y analisis.
+
+## plot_pca_tsne.ipynb
+
+Este script obtiene los datos a trabajar desde un archivo pickle formato `.pkl` y contiene 2 funciones para la graficacion de los datos, que realizan la reduccion de dimension a travez un metodo a elegir entre `TSNE` y `PCA`
+
+#### Se requiere instalar una libreria llamada `ipympl`, junto con haber guardado previamente el dataframe que contiene los embeddings, llamado df1_matched, que se encuentra en Bert_prediction o GPT2_prediction, y se necesita solo descomentar una linea de codigo para realizar el guardado de estos datos:
+
+```
+# df1_matched.to_pickle("df1_matched.pkl")
+```
+
+## Imagenes obtenidas al graficar para las carreras de agronomia y psicologia, con la reduccion de dimension realizada a travez del metodo de TSNE
+
+* BERT
+<img src='Imagenes/BERT_2d.png' width='750'>
+
+* GPT2
+<img src='Imagenes/GPT2_2d.png' width='750'>
+
+### De lo que puede observar que para el uso de la similitud coseno para la similitud semantica textual, es preferible el uso del modelo BERT, ya que realiza la agrupacion en un solo sector a diferencia de el modelo GPT2, algo tambien observable en los graficos en 3 dimensiones
+
+* BERT
+<img src='Imagenes/BERT_3d.png' width='750'>
+
+* GPT2
+<img src='Imagenes/GPT2_3d.png' width='750'>
+
