@@ -125,7 +125,7 @@ print(" ")
 print("---------------------------------------------")
 print("df1 prediction")
 print(" ")
-df1_centroid,df1_matched=Bert_functions.centroid_df(df1,columns=["concepto","cuerpo_pre"],predict_batch=predict_batch_num,batch_size=batch_size_num)
+df1_centroid,df1_matched=Bert_functions.centroid_df(df1,predict_batch=predict_batch_num,batch_size=batch_size_num)
 
 
 ## Funciones para guardar y cargar los datos de ser necesario
@@ -142,7 +142,7 @@ print(" ")
 print("---------------------------------------------")
 print("df2 prediction")
 print(" ")
-df2_centroid,df2_matched_centroid=Bert_functions.centroid_df(df2,columns=["universidad","carrera","cuerpo_pre"],predict_batch=predict_batch_num,batch_size=batch_size_num)
+df2_centroid,df2_matched_centroid=Bert_functions.centroid_df(df2,predict_batch=predict_batch_num,batch_size=batch_size_num)
 
 ## Funciones para guardar y cargar los datos de ser necesario
 ## Cambiar nombre de ser necesario para no sobre escribir un archivo antiguo

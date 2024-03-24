@@ -186,7 +186,7 @@ def get_centroid_emb(corpus,predict_batch,batch_size_n):
 
     return centroid_emb_list,centroid_emb_list_1, cls_tokens
 
-def centroid_df(df,columns,predict_batch,batch_size):
+def centroid_df(df,predict_batch,batch_size,columns=[]):
     """
     Funcion que aplica la funcion get_centroid_emb para la obtencion de embeddings, y filtra solo por solo los datos que tengan palabra clave existentes en df1 y df2
     y los guarda en df_matched con la funcion matched_df
@@ -205,11 +205,12 @@ def centroid_df(df,columns,predict_batch,batch_size):
     
 
     """
-    df_to_centroid=df[columns].copy()
+    #df_to_centroid=df[columns].copy()
+    df_to_centroid=df.copy()
     df_centroid=get_centroid_emb(df_to_centroid.cuerpo_pre,predict_batch,batch_size)
     df_to_centroid['0']=df_centroid[0] #768
-    df_to_centroid['1']=df_centroid[1] #512
-    df_to_centroid['2']=df_centroid[2] #cls
+    #df_to_centroid['1']=df_centroid[1] #512
+    #df_to_centroid['2']=df_centroid[2] #cls
 
 
 
@@ -307,7 +308,7 @@ def get_distances(cut,X1_input,X2_input,n_centroid,min_max_bolean,cut_porcentaje
         desv_std.append(np.std(dists))
 
 
-    df1_dist=X2_input[["concepto","cuerpo_pre"]].copy()
+    df1_dist=X2_input.copy()
     df1_dist['distancia'] = dist_prom
     df1_dist['desviacion'] = desv_std
 
